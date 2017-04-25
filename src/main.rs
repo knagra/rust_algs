@@ -7,7 +7,7 @@ mod common_chars;
 
 
 fn main() {
-    let all_algs = ["menu", "kadane"];
+    let all_algs = ["menu", "kadane", "common_chars"];
     let args: Vec<_> = env::args().collect();
     if args.len() != 2 {
         panic!(
