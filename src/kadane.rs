@@ -1,4 +1,4 @@
-use print_time;
+use crate::print_time;
 
 fn kadane(arr: &[f64]) -> (f64, usize, usize) {
     if arr.len() == 0 {
@@ -28,11 +28,11 @@ fn kadane(arr: &[f64]) -> (f64, usize, usize) {
 pub fn run() {
     let arr1: [f64; 4] = [-2.0, -3.0, -4.0, -1.0];
     let arr2: [f64; 10] = [-2.0, -3.0, 4.0, -1.0, -2.0, 1.0, 5.0, -3.0, 2.0, 1.0];
-    let (sec, nsec) = print_time::print_time(0 as i64, 0 as i32);
+    let prev_inst = print_time::print_time(None);
     let (max_so_far, start, end) = kadane(&arr1);
     println!("{}, {}, {}", max_so_far, start, end);
-    let (sec, nsec) = print_time::print_time(sec, nsec);
+    let prev_inst = print_time::print_time(Some(prev_inst));
     let (max_so_far, start, end) = kadane(&arr2);
     println!("{}, {}, {}", max_so_far, start, end);
-    let (_, _) = print_time::print_time(sec, nsec);
+    let _ = print_time::print_time(Some(prev_inst));
 }

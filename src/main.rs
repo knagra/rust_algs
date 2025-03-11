@@ -4,6 +4,7 @@ mod print_time;
 mod menu;
 mod kadane;
 mod common_chars;
+mod lpts_hash_table;
 
 
 fn main() {
@@ -22,5 +23,7 @@ fn main() {
         kadane::run();
     } else if alg_name == "common_chars" {
         common_chars::run();
+    } else if alg_name == "linear_hash_table" {
+        lpts_hash_table::run();
     }
 }

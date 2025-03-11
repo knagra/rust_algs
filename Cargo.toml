@@ -2,6 +2,7 @@
 name = "alg"
 version = "0.1.0"
 authors = ["Karandeep Nagra <karandeepsnagra@gmail.com>"]
+edition = "2024"
 
 [dependencies]
 time = "*"
