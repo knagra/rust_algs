@@ -1,14 +1,12 @@
-struct LinearProbingTombstoneHashTable {
-    table: Vec<Option<(Option<usize>, Vec<char>)>>,
+struct LinearProbingRobinHoodHashTable {
+    table: Vec<Option<(usize, usize, Vec<char>)>>,
     capacity: usize,
     size: usize,
 }
 
-const TOMBSTONE: Option<(Option<usize>, Vec<char>)> = Some((None, vec![]));
-
-impl LinearProbingTombstoneHashTable {
+impl LinearProbingRobinHoodHashTable {
     fn new(capacity: usize) -> Self {
-        LinearProbingTombstoneHashTable {
+        LinearProbingRobinHoodHashTable {
             table: vec![None; capacity],
             capacity,
             size: 0,
@@ -28,10 +26,8 @@ impl LinearProbingTombstoneHashTable {
         self.table = vec![None; self.capacity];
         self.size = 0;
         for entry in old_table {
-            if let Some((key, value)) = entry {
-                if key.is_some() {
-                    self.insert(key.unwrap(), value);
-                }
+            if let Some((key, _, value)) = entry {
+                self.insert(key, value);
             }
         }
         return true;
@@ -47,48 +43,40 @@ impl LinearProbingTombstoneHashTable {
             self.resize();
         }
 
-        let preferred_index = self.get_preferred_index(key);
-
-        let mut tombstone_found = false;
-        let mut tombstone_idx: usize = 0;
+        let mut preferred_index = self.get_preferred_index(key);
+        let mut i= 0;
+        let mut target_key = key;
+        let mut target_value = value.clone();
 
         // Loop until a free location is found.
         // No need to check if the table is full during probing because the table is scaled as needed
         // at the beginning of this method.
-        for i in 0..self.capacity {
+        loop {
             // Loop around to the front of the vector as needed.
             let probe_index = (preferred_index + i) % self.capacity;
 
             if self.table[probe_index].is_none() {
-                if tombstone_found {
-                    // We hit an empty bucket, but we encountered a tombstone earlier
-                    self.table[tombstone_idx] = Some((Some(key), value));
-                } else {
-                    // Empty bucket found and we didn't find a tombstone in the probing earlier
-                    // Insert at found empty bucket
-                    self.table[probe_index] = Some((Some(key), value));
-                }
+                // Empty bucket found, insert at found empty bucket
+                self.table[probe_index] = Some((target_key, i, target_value));
                 self.size += 1;
                 return;
-            } else if let Some((existing_key, _)) = &self.table[probe_index] {
-                if *existing_key == Some(key) {
-                    if tombstone_found {
-                        // Key already exists, but we found a tombstone earlier during probing
-                        // Move the entry to the earlier tombstone and set the current entry to a tombstone
-                        self.table[tombstone_idx] = Some((Some(key), value));
-                        self.table[probe_index] = TOMBSTONE;
-                    } else {
-                        // Key already exists and we didn't find a tombstone during probing, replace the value
-                        self.table[probe_index] = Some((Some(key), value));
-                    }
+            } else if let Some((existing_key, existing_offset, existing_value)) = &self.table[probe_index].clone() {
+                if *existing_key == target_key {
+                    // Key already exists and we didn't find a tombstone during probing, replace the value
+                    self.table[probe_index] = Some((target_key, i, target_value));
                     return;
-                } else if existing_key.is_none() && !tombstone_found {
-                    // This is the first tombstone we've found in probing; so record its position
-
-                    tombstone_found = true;
-                    tombstone_idx = probe_index;
+                } else if *existing_offset < i {
+                    // Evict existing bucket occupant because its offset is lower than current item's
+                    // Continue evicting subsequent items until an empty bucket is found.
+                    self.table[probe_index] = Some((target_key, i, target_value));
+                    preferred_index = probe_index - existing_offset;
+                    target_key = *existing_key;
+                    target_value = existing_value.clone();
+                    i = *existing_offset;
+                    continue;
                 }
             }
+            i += 1;
         }
     }
 
@@ -98,12 +86,17 @@ impl LinearProbingTombstoneHashTable {
         for i in 0..self.capacity {
             let probe_index: usize = (preferred_index + i) % self.capacity;
 
-            if let Some((existing_key, _)) = &self.table[probe_index] {
-                // We've hit an occupied bucket. Check if the key matches, in which case, we have a hit.
-                // If the key doesn't match, continue probing by jumping to the line incrementing i.
-                if *existing_key == Some(key) {
+            if let Some((existing_key, offset, _)) = &self.table[probe_index] {
+                // We've hit an occupied bucket
+                if *existing_key == key {
+                    // Key matches; we have a hit.
                     return Some(probe_index);
+                } else if *offset < i {
+                    // Since offset is less than the current occupant's offset, the key is not in the table.
+                    // If it were in the table, we would have found it already during probing.
+                    return None;
                 }
+                // Else continue probing
             } else {
                 // We've hit an empty bucket during probing.
                 return None;
@@ -119,7 +112,7 @@ impl LinearProbingTombstoneHashTable {
         if found_index.is_none() {
             return None;
         }
-        if let Some((_, value)) = &self.table[found_index.unwrap()] {
+        if let Some((_, _, value)) = &self.table[found_index.unwrap()] {
             return Some(value);
         } else {
             return None;
@@ -131,10 +124,23 @@ impl LinearProbingTombstoneHashTable {
         if found_index.is_none() {
             return;
         }
-        let actual_index = found_index.unwrap();
-        if let Some((_, _)) = &self.table[actual_index] {
-            self.size -= 1;
-            self.table[actual_index] = TOMBSTONE;
+        let mut target_index = found_index.unwrap();
+        loop {
+            let next_index = (target_index + 1) % self.capacity;
+            if let Some((next_key, next_offset, next_value)) = &self.table[next_index].clone() {
+                if *next_offset > 0 {
+                    self.table[target_index] = Some((*next_key, *next_offset - 1, next_value.clone()));
+                    target_index = next_index;
+                } else {
+                    self.table[target_index] = None;
+                    self.size -= 1;
+                    return;
+                }
+            } else {
+                self.table[target_index] = None;
+                self.size -= 1;
+                return
+            }
         }
     }
 
@@ -143,12 +149,8 @@ impl LinearProbingTombstoneHashTable {
         println!("Size: {}", self.size);
         println!("Entries:");
         for entry in &self.table {
-            if let Some((key, value)) = entry {
-                if key.is_none() {
-                    println!("\t<TOMBSTONE>");
-                } else {
-                    println!("\t{}: {}", key.unwrap(), value.iter().collect::<String>());
-                }
+            if let Some((key, offset, value)) = entry {
+                println!("\t{} (offset: {}): {}", key, offset, value.iter().collect::<String>());
             } else {
                 println!("\t<None>");
             }
@@ -158,7 +160,7 @@ impl LinearProbingTombstoneHashTable {
 
 pub fn run() {
     let capacity: usize= 10;
-    let mut hash_table = LinearProbingTombstoneHashTable::new(capacity);
+    let mut hash_table = LinearProbingRobinHoodHashTable::new(capacity);
 
     let one: Vec<char> = "one".chars().collect();
     let two: Vec<char> = "two".chars().collect();
@@ -182,8 +184,8 @@ pub fn run() {
     hash_table.insert(11, eleven.clone());
     println!("Initial:");
     hash_table.print();
-    assert!(hash_table.capacity == 10);
-    assert!(hash_table.size == 9);
+    assert!(hash_table.capacity == 10, "Capacity: {}", hash_table.capacity);
+    assert!(hash_table.size == 9, "Size: {}", hash_table.size);
     let return_val = hash_table.get(1);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(one.clone()).filter(|&(a, b)| *a != b).count() == 0);
@@ -215,27 +217,38 @@ pub fn run() {
     hash_table.delete(4);
     let return_val = hash_table.get(4);
     assert!(return_val.is_none());
-    println!("After deleting key 4:");
+    println!("After deleting key 4, keys 5 to 8 should be moved toward the front:");
     hash_table.print();
-    assert!(hash_table.size == 8);
+    assert!(hash_table.size == 8, "Size: {}", hash_table.size);
 
     hash_table.insert(11, eleven.clone());
-    println!("Re-inserted 11, which should be moved to the earlier tombstone:");
+    println!("Re-inserted 11, which should have no impact:");
     hash_table.print();
-    assert!(hash_table.size == 8);
+    assert!(hash_table.size == 8, "Size: {}", hash_table.size);
+
+    hash_table.insert(4, four.clone());
+    println!("Re-inserted 4, keys 5 to 8 should be moved toward the back:");
+    hash_table.print();
+    assert!(hash_table.size == 9, "Size: {}", hash_table.size);
 
     let twelve: Vec<char> = "twelve".chars().collect();
     hash_table.insert(12, twelve.clone());
-    println!("Inserted 12, which should collide with 2:");
+    println!("Inserted 12:");
     hash_table.print();
-    assert!(hash_table.size == 9);
+    assert!(hash_table.size == 10);
+
+    hash_table.delete(12);
+    println!("Deleted 12, keys 3 to 8 should be moved toward the front:");
+    hash_table.print();
+    assert!(hash_table.size == 9, "Size: {}", hash_table.size);
 
     let nine: Vec<char> = "nine".chars().collect();
     let ten: Vec<char> = "ten".chars().collect();
     hash_table.insert(9, nine.clone());
     hash_table.insert(10, ten.clone());
-    println!("Inserted 9 & 10, table should be resized to 20:");
+    hash_table.insert(12, twelve.clone());
+    println!("Inserted 9, 10 & 12, table should be resized to 20:");
     hash_table.print();
     assert!(hash_table.capacity == 20);
-    assert!(hash_table.size == 11);
+    assert!(hash_table.size == 12);
 }
