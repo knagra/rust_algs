@@ -170,7 +170,15 @@ pub fn run() {
     let six: Vec<char> = "six".chars().collect();
     let seven: Vec<char> = "seven".chars().collect();
     let eight: Vec<char> = "eight".chars().collect();
+    let nine: Vec<char> = "nine".chars().collect();
+    let ten: Vec<char> = "ten".chars().collect();
     let eleven: Vec<char> = "eleven".chars().collect();
+    let twelve: Vec<char> = "twelve".chars().collect();
+    let fifteen: Vec<char> = "fifteen".chars().collect();
+    let sixteen: Vec<char> = "sixteen".chars().collect();
+    let thirty_five: Vec<char> = "thirty_five".chars().collect();
+    let thirty_six: Vec<char> = "thirty_six".chars().collect();
+    let fifty_six: Vec<char> = "fifty_six".chars().collect();
 
     hash_table.insert(1, one.clone());
     hash_table.insert(2, two.clone());
@@ -180,42 +188,42 @@ pub fn run() {
     hash_table.insert(6, six.clone());
     hash_table.insert(7, seven.clone());
     hash_table.insert(8, eight.clone());
-    // Should collide with 1
+    // Should collide with 1 and shift everything after to the back
     hash_table.insert(11, eleven.clone());
     println!("Initial:");
     hash_table.print();
     assert!(hash_table.capacity == 10, "Capacity: {}", hash_table.capacity);
     assert!(hash_table.size == 9, "Size: {}", hash_table.size);
-    let return_val = hash_table.get(1);
+    let mut return_val = hash_table.get(1);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(one.clone()).filter(|&(a, b)| *a != b).count() == 0);
-    let return_val = hash_table.get(2);
+    return_val = hash_table.get(2);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(two.clone()).filter(|&(a, b)| *a != b).count() == 0);
-    let return_val = hash_table.get(3);
+    return_val = hash_table.get(3);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(three.clone()).filter(|&(a, b)| *a != b).count() == 0);
-    let return_val = hash_table.get(4);
+    return_val = hash_table.get(4);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(four.clone()).filter(|&(a, b)| *a != b).count() == 0);
-    let return_val = hash_table.get(5);
+    return_val = hash_table.get(5);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(five.clone()).filter(|&(a, b)| *a != b).count() == 0);
-    let return_val = hash_table.get(6);
+    return_val = hash_table.get(6);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(six.clone()).filter(|&(a, b)| *a != b).count() == 0);
-    let return_val = hash_table.get(7);
+    return_val = hash_table.get(7);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(seven.clone()).filter(|&(a, b)| *a != b).count() == 0);
-    let return_val = hash_table.get(8);
+    return_val = hash_table.get(8);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(eight.clone()).filter(|&(a, b)| *a != b).count() == 0);
-    let return_val = hash_table.get(11);
+    return_val = hash_table.get(11);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(eleven.clone()).filter(|&(a, b)| *a != b).count() == 0);
 
     hash_table.delete(4);
-    let return_val = hash_table.get(4);
+    return_val = hash_table.get(4);
     assert!(return_val.is_none());
     println!("After deleting key 4, keys 5 to 8 should be moved toward the front:");
     hash_table.print();
@@ -231,7 +239,6 @@ pub fn run() {
     hash_table.print();
     assert!(hash_table.size == 9, "Size: {}", hash_table.size);
 
-    let twelve: Vec<char> = "twelve".chars().collect();
     hash_table.insert(12, twelve.clone());
     println!("Inserted 12:");
     hash_table.print();
@@ -241,14 +248,44 @@ pub fn run() {
     println!("Deleted 12, keys 3 to 8 should be moved toward the front:");
     hash_table.print();
     assert!(hash_table.size == 9, "Size: {}", hash_table.size);
+    assert!(hash_table.get(12).is_none());
 
-    let nine: Vec<char> = "nine".chars().collect();
-    let ten: Vec<char> = "ten".chars().collect();
     hash_table.insert(9, nine.clone());
     hash_table.insert(10, ten.clone());
     hash_table.insert(12, twelve.clone());
-    println!("Inserted 9, 10 & 12, table should be resized to 20:");
+    hash_table.insert(16, sixteen.clone());
+    hash_table.insert(36, thirty_six.clone());
+    hash_table.insert(56, fifty_six.clone());
+    println!("Inserted 9, 10, 12, 16, 36, 56, table should be resized to 20:");
     hash_table.print();
-    assert!(hash_table.capacity == 20);
-    assert!(hash_table.size == 12);
+    assert!(hash_table.capacity == 20, "Capacity: {}", hash_table.capacity);
+    assert!(hash_table.size == 15, "Size: {}", hash_table.size);
+
+    hash_table.insert(15, fifteen.clone());
+    hash_table.insert(35, thirty_five.clone());
+    println!("Inserted 15 & 35, keys 16, 36 & 56 should be moved toward the back:");
+    hash_table.print();
+    assert!(hash_table.capacity == 20, "Capacity: {}", hash_table.capacity);
+    assert!(hash_table.size == 17, "Size: {}", hash_table.size);
+    assert!(hash_table.get(15).is_some());
+    assert!(hash_table.get(35).is_some());
+
+    hash_table.delete(36);
+    println!("Deleted 36, keys 16 & 56 should be moved toward the front:");
+    hash_table.print();
+    assert!(hash_table.capacity == 20, "Capacity: {}", hash_table.capacity);
+    assert!(hash_table.size == 16, "Size: {}", hash_table.size);
+    assert!(hash_table.get(35).is_some());
+    assert!(hash_table.get(56).is_some());
+    assert!(hash_table.get(16).is_some());
+    assert!(hash_table.get(36).is_none());
+
+    hash_table.delete(35);
+    println!("Deleted 35, keys 16 & 56 should be moved toward the front:");
+    hash_table.print();
+    assert!(hash_table.capacity == 20, "Capacity: {}", hash_table.capacity);
+    assert!(hash_table.size == 15, "Size: {}", hash_table.size);
+    assert!(hash_table.get(36).is_none());
+    assert!(hash_table.get(56).is_some());
+    assert!(hash_table.get(16).is_some());
 }
