@@ -2,22 +2,16 @@ struct QuadraticProbingTombstoneHashTable {
     table: Vec<Option<(Option<usize>, Vec<char>)>>,
     capacity: usize,
     size: usize,
-    c2: usize,
-    c1: usize,
-    c0: usize,
 }
 
 const TOMBSTONE: Option<(Option<usize>, Vec<char>)> = Some((None, vec![]));
 
 impl QuadraticProbingTombstoneHashTable {
-    fn new(capacity: usize, c2: usize, c1: usize, c0: usize) -> Self {
+    fn new(capacity: usize) -> Self {
         QuadraticProbingTombstoneHashTable {
             table: vec![None; capacity],
             capacity,
             size: 0,
-            c2,
-            c1,
-            c0,
         }
     }
 
@@ -27,9 +21,14 @@ impl QuadraticProbingTombstoneHashTable {
         key % self.capacity
     }
 
-    fn get_probe_index(&self, preferred_index: usize, i: usize) -> usize {
+    fn get_secondary_hash(&self, _key: usize) -> usize {
+        // For testing simplicity, we just return 1 as the hash value for everything
+        1
+    }
+
+    fn get_probe_index(&self, preferred_index: usize, i: usize, key: usize) -> usize {
         if i > 0 {
-            (preferred_index + (self.c2 * i * i) + (self.c1 * i) + self.c0) % self.capacity
+            (preferred_index + i * self.get_secondary_hash(key)) % self.capacity
         } else {
             preferred_index
         }
@@ -72,7 +71,7 @@ impl QuadraticProbingTombstoneHashTable {
             // Loop until a free location is found.
             for i in 0..self.capacity {
                 // Loop around to the front of the vector as needed.
-                let probe_index = self.get_probe_index(preferred_index, i);
+                let probe_index = self.get_probe_index(preferred_index, i, key);
 
                 if self.table[probe_index].is_none() {
                     if tombstone_found {
@@ -116,7 +115,7 @@ impl QuadraticProbingTombstoneHashTable {
         let preferred_index = self.get_preferred_index(key);
 
         for i in 0..self.capacity {
-            let probe_index: usize = self.get_probe_index(preferred_index, i);
+            let probe_index: usize = self.get_probe_index(preferred_index, i, key);
 
             if let Some((existing_key, _)) = &self.table[probe_index] {
                 // We've hit an occupied bucket. Check if the key matches, in which case, we have a hit.
@@ -178,7 +177,7 @@ impl QuadraticProbingTombstoneHashTable {
 
 pub fn run() {
     let capacity: usize= 10;
-    let mut hash_table = QuadraticProbingTombstoneHashTable::new(capacity, 1, 1, 1);
+    let mut hash_table = QuadraticProbingTombstoneHashTable::new(capacity);
 
     let one: Vec<char> = "one".chars().collect();
     let two: Vec<char> = "two".chars().collect();
@@ -192,8 +191,6 @@ pub fn run() {
     let ten: Vec<char> = "ten".chars().collect();
     let eleven: Vec<char> = "eleven".chars().collect();
     let twelve: Vec<char> = "twelve".chars().collect();
-    let fourteen: Vec<char> = "fourteen".chars().collect();
-    let twenty_one: Vec<char> = "twenty_one".chars().collect();
 
     hash_table.insert(1, one.clone());
     hash_table.insert(2, two.clone());
@@ -203,10 +200,12 @@ pub fn run() {
     hash_table.insert(6, six.clone());
     hash_table.insert(7, seven.clone());
     hash_table.insert(8, eight.clone());
+    // Should collide with 1
+    hash_table.insert(11, eleven.clone());
     println!("Initial:");
     hash_table.print();
     assert!(hash_table.capacity == 10);
-    assert!(hash_table.size == 8);
+    assert!(hash_table.size == 9);
     let mut return_val = hash_table.get(1);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(one.clone()).filter(|&(a, b)| *a != b).count() == 0);
@@ -231,26 +230,19 @@ pub fn run() {
     return_val = hash_table.get(8);
     assert!(return_val.is_some());
     assert!(return_val.unwrap().iter().zip(eight.clone()).filter(|&(a, b)| *a != b).count() == 0);
-
-    // Should collide with 1 and resize table
-    hash_table.insert(21, twenty_one.clone());
-    println!("Inserted 21, which should resize to 20:");
-    hash_table.print();
-    assert!(hash_table.capacity == 20);
-    assert!(hash_table.size == 9);
-    return_val = hash_table.get(21);
+    return_val = hash_table.get(11);
     assert!(return_val.is_some());
-    assert!(return_val.unwrap().iter().zip(twenty_one.clone()).filter(|&(a, b)| *a != b).count() == 0);
+    assert!(return_val.unwrap().iter().zip(eleven.clone()).filter(|&(a, b)| *a != b).count() == 0);
 
-    hash_table.delete(1);
-    return_val = hash_table.get(1);
+    hash_table.delete(4);
+    return_val = hash_table.get(4);
     assert!(return_val.is_none());
-    println!("After deleting key 1:");
+    println!("After deleting key 4:");
     hash_table.print();
     assert!(hash_table.size == 8);
 
-    hash_table.insert(21, twenty_one.clone());
-    println!("Re-inserted 21, which should be moved to the earlier tombstone:");
+    hash_table.insert(11, eleven.clone());
+    println!("Re-inserted 11, which should be moved to the earlier tombstone:");
     hash_table.print();
     assert!(hash_table.size == 8);
 
@@ -261,9 +253,8 @@ pub fn run() {
 
     hash_table.insert(9, nine.clone());
     hash_table.insert(10, ten.clone());
-    hash_table.insert(11, eleven.clone());
-    hash_table.insert(14, fourteen.clone());
-    println!("Inserted 9, 10, 11 & 14, the tombstone left by 21 should be occupied by 14 now:");
+    println!("Inserted 9 & 10, table should be resized to 20:");
     hash_table.print();
-    assert!(hash_table.size == 13);
+    assert!(hash_table.capacity == 20);
+    assert!(hash_table.size == 11);
 }

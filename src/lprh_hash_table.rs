@@ -14,6 +14,8 @@ impl LinearProbingRobinHoodHashTable {
     }
 
     fn get_preferred_index(&self, key: usize) -> usize {
+        // For testing simplicity, we just mod the key by the capacity.
+        // We would ideally use a proper hash function here.
         key % self.capacity
     }
 
