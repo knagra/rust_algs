@@ -10,6 +10,7 @@ mod qpts_hash_table;
 mod dhts_hash_table;
 mod cuckoo_hash_table;
 mod bloom_filter;
+mod counting_bloom_filter;
 
 
 fn main() {
@@ -43,6 +44,8 @@ fn main() {
         cuckoo_hash_table::run();
     } else if alg_name == "bloom_filter" {
         bloom_filter::run();
+    } else if alg_name == "counting_bloom_filter" {
+        counting_bloom_filter::run();
     } else {
         panic!("Could not find \"{}\" as a run target", alg_name);
     }

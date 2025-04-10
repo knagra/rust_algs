@@ -56,7 +56,7 @@ pub fn run() {
     assert!(bloom_filter.contains(16));
     assert!(bloom_filter.contains(35));
     assert!(bloom_filter.contains(36));
-    // Collisions are expected
+    // False positives are expected
     assert!(bloom_filter.contains(25));
     assert!(bloom_filter.contains(26));
     println!("All tests passed");
