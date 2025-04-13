@@ -1,4 +1,4 @@
-struct QuadraticProbingTombstoneHashTable {
+struct DoubleHashingTombstoneHashTable {
     table: Vec<Option<(Option<usize>, Vec<char>)>>,
     capacity: usize,
     size: usize,
@@ -6,9 +6,9 @@ struct QuadraticProbingTombstoneHashTable {
 
 const TOMBSTONE: Option<(Option<usize>, Vec<char>)> = Some((None, vec![]));
 
-impl QuadraticProbingTombstoneHashTable {
+impl DoubleHashingTombstoneHashTable {
     fn new(capacity: usize) -> Self {
-        QuadraticProbingTombstoneHashTable {
+        DoubleHashingTombstoneHashTable {
             table: vec![None; capacity],
             capacity,
             size: 0,
@@ -177,7 +177,7 @@ impl QuadraticProbingTombstoneHashTable {
 
 pub fn run() {
     let capacity: usize= 10;
-    let mut hash_table = QuadraticProbingTombstoneHashTable::new(capacity);
+    let mut hash_table = DoubleHashingTombstoneHashTable::new(capacity);
 
     let one: Vec<char> = "one".chars().collect();
     let two: Vec<char> = "two".chars().collect();

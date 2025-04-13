@@ -1,12 +1,12 @@
-struct LinearProbingRobinHoodHashTable {
+struct CuckooHashTable {
     table: Vec<Option<(usize, Vec<char>)>>,
     capacity: usize,
     size: usize,
 }
 
-impl LinearProbingRobinHoodHashTable {
+impl CuckooHashTable {
     fn new(capacity: usize) -> Self {
-        LinearProbingRobinHoodHashTable {
+        CuckooHashTable {
             table: vec![None; capacity],
             capacity,
             size: 0,
@@ -168,7 +168,7 @@ impl LinearProbingRobinHoodHashTable {
 
 pub fn run() {
     let capacity: usize= 10;
-    let mut hash_table = LinearProbingRobinHoodHashTable::new(capacity);
+    let mut hash_table = CuckooHashTable::new(capacity);
 
     let one: Vec<char> = "one".chars().collect();
     let two: Vec<char> = "two".chars().collect();
